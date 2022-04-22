@@ -14,9 +14,9 @@ function verifyIfExistsAccountCPF(req, res, next) {
     return next();
 }
 
-function getBalance(statement){
-    const balance = statement.reduce((acc,operation) => {
-        if(operation.type === 'credit'){
+function getBalance(statement) {
+    const balance = statement.reduce((acc, operation) => {
+        if (operation.type === 'credit') {
             return acc + operation.amount
         } else {
             return acc - operation.amount
@@ -65,15 +65,51 @@ app.post("/withdraw", verifyIfExistsAccountCPF, (req, res) => {
     const { customer } = req;
     const balance = getBalance(customer.statement);
 
-    if(amount > balance) return res.status(400).json({error: "insufficient funds!"});
+    if (amount > balance) return res.status(400).json({ error: "insufficient funds!" });
     const statementOperation = {
         amount,
         created_at: new Date(),
         type: 'debit'
     }
-    
+
     customer.statement.push(statementOperation);
-    return res.status(200).json({message:"Okay"})
+    return res.status(200).json({ message: "Okay" })
+})
+
+app.get("/statement/date", verifyIfExistsAccountCPF, (req, res) => {
+    const { customer } = req
+    const { date } = req.query
+
+    const dateFormat = new Date(date + " 00:00")
+
+    const statement = customer.statement.filter((statement) => statement.created_at.toDateString() === new Date(dateFormat).toDateString())
+
+    return res.json(statement);
+});
+
+app.put("/account", verifyIfExistsAccountCPF, (req, res) => {
+    const { name } = req.body;
+    const { customer } = req;
+    customer.name = name;
+    return res.status(201).send("Yes");
+})
+
+app.get("/account", verifyIfExistsAccountCPF, (req, res) => {
+    const { customer } = req;
+    return res.json(customer);
+})
+
+app.delete("/account", verifyIfExistsAccountCPF, (req, res) => {
+    const { customer } = req;
+    //splice
+    customers.splice(customer, 1);
+    return res.status(200).json(customers);
+})
+
+app.get("/balance", verifyIfExistsAccountCPF, (req, res) => {
+    const { customer } = req;
+    const balance = getBalance(customer.statement);
+    return res.json(balance);
 })
 
 app.listen(3333);
